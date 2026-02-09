@@ -1,10 +1,3 @@
-// ============================================================
-// QUANTUM OLYMPIAD — SUPABASE CLIENT v3.0 (Auth + Register + Realtime)
-// ============================================================
-// Full authentication layer: Login, Register, Email Verification.
-// Real Supabase or Demo Mode with in-memory simulation.
-// ============================================================
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
@@ -25,95 +18,6 @@ if (!IS_DEMO_MODE) {
 }
 
 export { supabase };
-
-// ============================================================
-// SESSION RECOVERY (handles redirect from email verification)
-// ============================================================
-export async function recoverSessionFromURL(): Promise<Profile | null> {
-  if (IS_DEMO_MODE) return null;
-
-  // Check if URL contains auth callback tokens
-  const hash = window.location.hash;
-  if (!hash || !hash.includes('access_token')) return null;
-
-  try {
-    // Let Supabase parse the tokens from the URL
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error || !session?.user) {
-      // Try to set session from URL explicitly
-      // Parse hash params
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        const { data, error: setError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        
-        if (setError || !data.session?.user) return null;
-        
-        // Fetch profile
-        const { data: profile } = await supabase
-          .from('profiles').select('*').eq('id', data.session.user.id).single();
-        
-        // Clean URL
-        window.history.replaceState(null, '', window.location.pathname);
-        
-        if (profile) return profile as Profile;
-        
-        // Profile might not exist yet (trigger delay), wait and retry
-        await new Promise(r => setTimeout(r, 2000));
-        const { data: retryProfile } = await supabase
-          .from('profiles').select('*').eq('id', data.session.user.id).single();
-        
-        window.history.replaceState(null, '', window.location.pathname);
-        return retryProfile as Profile | null;
-      }
-      return null;
-    }
-
-    // Session already exists from getSession
-    const { data: profile } = await supabase
-      .from('profiles').select('*').eq('id', session.user.id).single();
-    
-    // Clean URL (remove tokens)
-    window.history.replaceState(null, '', window.location.pathname);
-    
-    if (profile) return profile as Profile;
-    
-    // Retry after delay for trigger
-    await new Promise(r => setTimeout(r, 2000));
-    const { data: retryProfile } = await supabase
-      .from('profiles').select('*').eq('id', session.user.id).single();
-    
-    window.history.replaceState(null, '', window.location.pathname);
-    return retryProfile as Profile | null;
-  } catch (err) {
-    console.error('Session recovery error:', err);
-    window.history.replaceState(null, '', window.location.pathname);
-    return null;
-  }
-}
-
-// Check for existing session (page refresh / already logged in)
-export async function getExistingSession(): Promise<Profile | null> {
-  if (IS_DEMO_MODE) return null;
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
-
-    const { data: profile } = await supabase
-      .from('profiles').select('*').eq('id', session.user.id).single();
-    
-    return profile as Profile | null;
-  } catch {
-    return null;
-  }
-}
 
 // ============================================================
 // DATABASE TYPES
@@ -138,43 +42,135 @@ export interface QuizHistoryRow {
 }
 
 // ============================================================
-// DEMO MODE — LOCAL SIMULATION
+// HELPER: Try to fetch profile, with retries and fallback insert
 // ============================================================
-const DEMO_USERS: Profile[] = [
-  { id: 'demo-admin-001', email: 'admin@quantum.id', role: 'admin', level: 'SMA', current_streak: 0, display_name: 'System Admin', created_at: new Date(Date.now() - 30 * 86400000).toISOString() },
-  { id: 'demo-student-001', email: 'student@quantum.id', role: 'student', level: 'SMP', current_streak: 12, display_name: 'Aditya K.', created_at: new Date(Date.now() - 25 * 86400000).toISOString() },
-  { id: 'demo-student-002', email: 'rina@quantum.id', role: 'student', level: 'SMA', current_streak: 32, display_name: 'Rina S.', created_at: new Date(Date.now() - 20 * 86400000).toISOString() },
-  { id: 'demo-student-003', email: 'budi@quantum.id', role: 'student', level: 'SMA', current_streak: 28, display_name: 'Budi P.', created_at: new Date(Date.now() - 18 * 86400000).toISOString() },
-  { id: 'demo-student-004', email: 'sari@quantum.id', role: 'student', level: 'SMP', current_streak: 15, display_name: 'Sari W.', created_at: new Date(Date.now() - 15 * 86400000).toISOString() },
-  { id: 'demo-student-005', email: 'dimas@quantum.id', role: 'student', level: 'SMA', current_streak: 51, display_name: 'Dimas A.', created_at: new Date(Date.now() - 12 * 86400000).toISOString() },
-  { id: 'demo-student-006', email: 'maya@quantum.id', role: 'student', level: 'SMP', current_streak: 8, display_name: 'Maya R.', created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
-  { id: 'demo-student-007', email: 'fikri@quantum.id', role: 'student', level: 'SMA', current_streak: 39, display_name: 'Fikri H.', created_at: new Date(Date.now() - 8 * 86400000).toISOString() },
-  { id: 'demo-student-008', email: 'nadia@quantum.id', role: 'student', level: 'SMA', current_streak: 22, display_name: 'Nadia L.', created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
-  { id: 'demo-student-009', email: 'reza@quantum.id', role: 'student', level: 'SMP', current_streak: 3, display_name: 'Reza T.', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
-  { id: 'demo-student-010', email: 'putri@quantum.id', role: 'student', level: 'SMA', current_streak: 17, display_name: 'Putri M.', created_at: new Date(Date.now() - 1 * 86400000).toISOString() },
-];
+async function getOrCreateProfile(userId: string, meta?: { email?: string; full_name?: string; level?: string; role?: string }): Promise<Profile | null> {
+  // Attempt 1: fetch profile
+  const { data: p1 } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (p1) return p1 as Profile;
 
-const demoQuizHistory: QuizHistoryRow[] = [];
-let demoCurrentUser: Profile | null = null;
+  // Wait for trigger
+  await new Promise(r => setTimeout(r, 1500));
 
-const DEMO_SUBJECTS = ['Matematika', 'Fisika', 'Kimia', 'IPA', 'IPS', 'Biologi', 'Astronomi', 'Informatika', 'Ekonomi', 'Geografi'];
+  // Attempt 2: fetch again
+  const { data: p2 } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (p2) return p2 as Profile;
 
-function generateDemoFeedItem(): QuizHistoryRow {
-  const students = DEMO_USERS.filter(u => u.role === 'student');
-  const user = students[Math.floor(Math.random() * students.length)];
-  const subject = DEMO_SUBJECTS[Math.floor(Math.random() * DEMO_SUBJECTS.length)];
-  return {
-    id: `demo-qh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    user_id: user.id,
-    subject,
-    question_signature: `${subject.slice(0, 3).toLowerCase()}-${Math.random().toString(36).slice(2, 8)}`,
-    is_correct: Math.random() > 0.25,
-    created_at: new Date().toISOString(),
-  };
+  // Wait more
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Attempt 3: fetch again
+  const { data: p3 } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (p3) return p3 as Profile;
+
+  // Trigger failed — insert manually
+  if (meta) {
+    const newProfile = {
+      id: userId,
+      email: meta.email || '',
+      display_name: meta.full_name || 'Student',
+      role: meta.role || 'student',
+      level: meta.level || 'SMP',
+      current_streak: 0,
+    };
+    const { data: inserted } = await supabase.from('profiles').insert(newProfile).select().single();
+    if (inserted) return inserted as Profile;
+
+    // If insert also fails (RLS), return a local profile object
+    return {
+      id: userId,
+      email: meta.email || '',
+      display_name: meta.full_name || 'Student',
+      role: (meta.role || 'student') as 'student' | 'admin',
+      level: (meta.level || 'SMP') as 'SMP' | 'SMA',
+      current_streak: 0,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  return null;
 }
 
 // ============================================================
-// AUTH SERVICE — LOGIN
+// SESSION RECOVERY
+// ============================================================
+export async function recoverSessionFromURL(): Promise<Profile | null> {
+  if (IS_DEMO_MODE) return null;
+
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) return null;
+
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error || !session?.user) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const { data, error: setError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (setError || !data.session?.user) return null;
+
+        const user = data.session.user;
+        const meta = user.user_metadata || {};
+        const profile = await getOrCreateProfile(user.id, {
+          email: user.email,
+          full_name: meta.full_name,
+          level: meta.level,
+          role: meta.role,
+        });
+
+        window.history.replaceState(null, '', window.location.pathname);
+        return profile;
+      }
+      return null;
+    }
+
+    const user = session.user;
+    const meta = user.user_metadata || {};
+    const profile = await getOrCreateProfile(user.id, {
+      email: user.email,
+      full_name: meta.full_name,
+      level: meta.level,
+      role: meta.role,
+    });
+
+    window.history.replaceState(null, '', window.location.pathname);
+    return profile;
+  } catch (err) {
+    console.error('Session recovery error:', err);
+    window.history.replaceState(null, '', window.location.pathname);
+    return null;
+  }
+}
+
+export async function getExistingSession(): Promise<Profile | null> {
+  if (IS_DEMO_MODE) return null;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+
+    const user = session.user;
+    const meta = user.user_metadata || {};
+    return await getOrCreateProfile(user.id, {
+      email: user.email,
+      full_name: meta.full_name,
+      level: meta.level,
+      role: meta.role,
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
+// AUTH — LOGIN
 // ============================================================
 export interface AuthResult {
   success: boolean;
@@ -187,51 +183,50 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   if (!IS_DEMO_MODE) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      // Check for unconfirmed email
       const msg = error.message.toLowerCase();
       if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
-        return {
-          success: false,
-          error: 'Account not activated. Please verify your email.',
-          emailNotConfirmed: true,
-        };
+        return { success: false, error: 'Account not activated. Please verify your email.', emailNotConfirmed: true };
       }
       return { success: false, error: error.message };
     }
     if (!data.user) {
       return { success: false, error: 'Authentication failed' };
     }
-    // Fetch profile (created by DB trigger after email confirm)
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles').select('*').eq('id', data.user.id).single();
-    if (profileError || !profile) {
+
+    const user = data.user;
+    const meta = user.user_metadata || {};
+    const profile = await getOrCreateProfile(user.id, {
+      email: user.email,
+      full_name: meta.full_name,
+      level: meta.level,
+      role: meta.role,
+    });
+
+    if (!profile) {
       await supabase.auth.signOut();
       return { success: false, error: 'Profile not found. Contact administrator.' };
     }
-    return { success: true, user: profile as Profile };
+
+    return { success: true, user: profile };
   }
 
-  // ---- DEMO MODE ----
+  // DEMO MODE
   await new Promise(r => setTimeout(r, 800));
-  const user = DEMO_USERS.find(u => u.email === email);
-  if (!user) {
-    return { success: false, error: 'Invalid email or password.' };
-  }
+  const found = DEMO_USERS.find(u => u.email === email);
+  if (!found) return { success: false, error: 'Invalid email or password.' };
   if (password !== 'demo' && password !== 'admin123' && password !== 'student123' && password !== 'password') {
     return { success: false, error: 'Invalid email or password.' };
   }
-  demoCurrentUser = user;
-  return { success: true, user };
+  demoCurrentUser = found;
+  return { success: true, user: found };
 }
 
 // ============================================================
-// AUTH SERVICE — REGISTER (with Real Email Verification)
+// AUTH — REGISTER (Instant Access)
 // ============================================================
 export interface RegisterResult {
   success: boolean;
   error?: string;
-  emailSent?: boolean;
-  autoConfirmed?: boolean;
   user?: Profile;
 }
 
@@ -259,58 +254,55 @@ export async function signUp(
       return { success: false, error: error.message };
     }
 
-    // Supabase returns data.user even before confirmation
-    // but data.user.identities will be empty if user already exists
     if (data.user && data.user.identities && data.user.identities.length === 0) {
       return { success: false, error: 'An account with this email already exists.' };
     }
 
-    // Check if email confirmation is disabled (user already confirmed)
-    // If confirmed_at exists, user can login immediately — no need to wait for email
-    const isAlreadyConfirmed = data.user?.email_confirmed_at || data.session;
-    if (isAlreadyConfirmed) {
-      // User is already confirmed, fetch/create profile and return directly
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', data.user!.id).single();
-      if (profile) {
-        return { success: true, emailSent: false, autoConfirmed: true, user: profile as Profile };
-      }
-      // Profile might take a moment to be created by trigger, wait and retry
-      await new Promise(r => setTimeout(r, 1500));
-      const { data: retryProfile } = await supabase
-        .from('profiles').select('*').eq('id', data.user!.id).single();
-      if (retryProfile) {
-        return { success: true, emailSent: false, autoConfirmed: true, user: retryProfile as Profile };
-      }
+    if (!data.user) {
+      return { success: false, error: 'Registration failed.' };
     }
 
-    return { success: true, emailSent: true };
+    // Get or create profile with retries and fallback
+    const profile = await getOrCreateProfile(data.user.id, {
+      email: email,
+      full_name: fullName,
+      level: level,
+      role: 'student',
+    });
+
+    if (profile) {
+      return { success: true, user: profile };
+    }
+
+    // Absolute last resort: return profile from metadata
+    return {
+      success: true,
+      user: {
+        id: data.user.id,
+        email: email,
+        display_name: fullName,
+        role: 'student',
+        level: level,
+        current_streak: 0,
+        created_at: new Date().toISOString(),
+      },
+    };
   }
 
-  // ---- DEMO MODE: Simulate registration ----
+  // DEMO MODE
   await new Promise(r => setTimeout(r, 1000));
-
-  // Check if email already exists
   if (DEMO_USERS.find(u => u.email === email)) {
     return { success: false, error: 'An account with this email already exists.' };
   }
-
-  // Create a new demo user (immediately "verified" in demo mode)
   const newUser: Profile = {
     id: `demo-student-${Date.now()}`,
-    email,
-    role: 'student',
-    level,
-    current_streak: 0,
-    display_name: fullName,
+    email, role: 'student', level,
+    current_streak: 0, display_name: fullName,
     created_at: new Date().toISOString(),
   };
   DEMO_USERS.push(newUser);
-
-  // Notify profile change listeners for admin dashboard
   notifyProfileChange();
-
-  return { success: true, emailSent: true };
+  return { success: true, user: newUser };
 }
 
 export async function signOut(): Promise<void> {
@@ -325,17 +317,50 @@ export function getCurrentDemoUser(): Profile | null {
 }
 
 // ============================================================
+// DEMO MODE DATA
+// ============================================================
+const DEMO_USERS: Profile[] = [
+  { id: 'demo-admin-001', email: 'admin@quantum.id', role: 'admin', level: 'SMA', current_streak: 0, display_name: 'System Admin', created_at: new Date(Date.now() - 30 * 86400000).toISOString() },
+  { id: 'demo-student-001', email: 'student@quantum.id', role: 'student', level: 'SMP', current_streak: 12, display_name: 'Aditya K.', created_at: new Date(Date.now() - 25 * 86400000).toISOString() },
+  { id: 'demo-student-002', email: 'rina@quantum.id', role: 'student', level: 'SMA', current_streak: 32, display_name: 'Rina S.', created_at: new Date(Date.now() - 20 * 86400000).toISOString() },
+  { id: 'demo-student-003', email: 'budi@quantum.id', role: 'student', level: 'SMA', current_streak: 28, display_name: 'Budi P.', created_at: new Date(Date.now() - 18 * 86400000).toISOString() },
+  { id: 'demo-student-004', email: 'sari@quantum.id', role: 'student', level: 'SMP', current_streak: 15, display_name: 'Sari W.', created_at: new Date(Date.now() - 15 * 86400000).toISOString() },
+  { id: 'demo-student-005', email: 'dimas@quantum.id', role: 'student', level: 'SMA', current_streak: 51, display_name: 'Dimas A.', created_at: new Date(Date.now() - 12 * 86400000).toISOString() },
+  { id: 'demo-student-006', email: 'maya@quantum.id', role: 'student', level: 'SMP', current_streak: 8, display_name: 'Maya R.', created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+  { id: 'demo-student-007', email: 'fikri@quantum.id', role: 'student', level: 'SMA', current_streak: 39, display_name: 'Fikri H.', created_at: new Date(Date.now() - 8 * 86400000).toISOString() },
+  { id: 'demo-student-008', email: 'nadia@quantum.id', role: 'student', level: 'SMA', current_streak: 22, display_name: 'Nadia L.', created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
+  { id: 'demo-student-009', email: 'reza@quantum.id', role: 'student', level: 'SMP', current_streak: 3, display_name: 'Reza T.', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
+  { id: 'demo-student-010', email: 'putri@quantum.id', role: 'student', level: 'SMA', current_streak: 17, display_name: 'Putri M.', created_at: new Date(Date.now() - 1 * 86400000).toISOString() },
+];
+
+const demoQuizHistory: QuizHistoryRow[] = [];
+let demoCurrentUser: Profile | null = null;
+
+const DEMO_SUBJECTS = ['Matematika', 'Fisika', 'Kimia', 'IPA', 'IPS', 'Biologi', 'Astronomi', 'Informatika', 'Ekonomi', 'Geografi'];
+
+function generateDemoFeedItem(): QuizHistoryRow {
+  const students = DEMO_USERS.filter(u => u.role === 'student');
+  const user = students[Math.floor(Math.random() * students.length)];
+  const subject = DEMO_SUBJECTS[Math.floor(Math.random() * DEMO_SUBJECTS.length)];
+  return {
+    id: `demo-qh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    user_id: user.id, subject,
+    question_signature: `${subject.slice(0, 3).toLowerCase()}-${Math.random().toString(36).slice(2, 8)}`,
+    is_correct: Math.random() > 0.25,
+    created_at: new Date().toISOString(),
+  };
+}
+
+// ============================================================
 // DATA SERVICE
 // ============================================================
 export async function fetchProfiles(): Promise<Profile[]> {
   if (!IS_DEMO_MODE) {
-    const { data, error } = await supabase
-      .from('profiles').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     if (error) { console.error('Error fetching profiles:', error); return []; }
     return (data || []) as Profile[];
   }
-  return DEMO_USERS.map(u => ({ ...u }))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  return DEMO_USERS.map(u => ({ ...u })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function fetchQuizHistory(userId: string, subject?: string): Promise<QuizHistoryRow[]> {
@@ -354,11 +379,7 @@ export async function saveQuizResult(userId: string, subject: string, signature:
     await supabase.from('quiz_history').insert({ user_id: userId, subject, question_signature: signature, is_correct: isCorrect });
     return;
   }
-  demoQuizHistory.push({
-    id: `demo-qh-${Date.now()}`,
-    user_id: userId, subject, question_signature: signature,
-    is_correct: isCorrect, created_at: new Date().toISOString(),
-  });
+  demoQuizHistory.push({ id: `demo-qh-${Date.now()}`, user_id: userId, subject, question_signature: signature, is_correct: isCorrect, created_at: new Date().toISOString() });
 }
 
 export async function updateStreak(userId: string, streak: number): Promise<void> {
@@ -380,7 +401,7 @@ export async function fetchProfileById(userId: string): Promise<Profile | null> 
 }
 
 // ============================================================
-// REALTIME SUBSCRIPTION (v3.0)
+// REALTIME
 // ============================================================
 export interface RealtimeFeedItem {
   id: string;
@@ -405,8 +426,7 @@ export function onProfilesChanged(cb: ProfilesChangedCallback): () => void {
 }
 
 function notifyProfileChange() {
-  const snapshot = DEMO_USERS.map(u => ({ ...u }))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const snapshot = DEMO_USERS.map(u => ({ ...u })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   profileChangeListeners.forEach(cb => cb(snapshot));
 }
 
@@ -414,98 +434,52 @@ export function subscribeToQuizFeed(callback: FeedCallback): () => void {
   if (!IS_DEMO_MODE) {
     const channel = supabase
       .channel('admin-feed')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'quiz_history' },
-        async (payload) => {
-          const row = payload.new as QuizHistoryRow;
-          const profile = await fetchProfileById(row.user_id);
-          callback({
-            id: row.id,
-            userId: row.user_id,
-            userName: profile?.display_name || 'Unknown',
-            userEmail: profile?.email || '',
-            subject: row.subject,
-            signature: row.question_signature,
-            isCorrect: row.is_correct,
-            timestamp: row.created_at,
-            streak: profile?.current_streak || 0,
-          });
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'quiz_history' }, async (payload) => {
+        const row = payload.new as QuizHistoryRow;
+        const profile = await fetchProfileById(row.user_id);
+        callback({
+          id: row.id, userId: row.user_id,
+          userName: profile?.display_name || 'Unknown',
+          userEmail: profile?.email || '',
+          subject: row.subject, signature: row.question_signature,
+          isCorrect: row.is_correct, timestamp: row.created_at,
+          streak: profile?.current_streak || 0,
+        });
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }
 
-  // ---- DEMO MODE: Recursive setTimeout ----
   let cancelled = false;
-
   function scheduleNext() {
     if (cancelled) return;
     const delay = 2000 + Math.random() * 3000;
     setTimeout(() => {
       if (cancelled) return;
-
       const row = generateDemoFeedItem();
       const user = DEMO_USERS.find(u => u.id === row.user_id);
       if (user) {
-        if (row.is_correct) {
-          user.current_streak += 1;
-        } else {
-          user.current_streak = Math.max(0, user.current_streak - 1);
-        }
-
+        if (row.is_correct) user.current_streak += 1;
+        else user.current_streak = Math.max(0, user.current_streak - 1);
         callback({
-          id: row.id,
-          userId: row.user_id,
-          userName: user.display_name,
-          userEmail: user.email,
-          subject: row.subject,
-          signature: row.question_signature,
-          isCorrect: row.is_correct,
-          timestamp: row.created_at,
-          streak: user.current_streak,
+          id: row.id, userId: row.user_id, userName: user.display_name, userEmail: user.email,
+          subject: row.subject, signature: row.question_signature, isCorrect: row.is_correct,
+          timestamp: row.created_at, streak: user.current_streak,
         });
-
         notifyProfileChange();
       }
-
       scheduleNext();
     }, delay);
   }
-
   scheduleNext();
-
   return () => { cancelled = true; };
 }
 
-// ============================================================
-// PROFILE POLLING
-// ============================================================
-export function pollProfiles(
-  callback: (profiles: Profile[]) => void,
-  intervalMs = 10000
-): () => void {
+export function pollProfiles(callback: (profiles: Profile[]) => void, intervalMs = 10000): () => void {
   let active = true;
-
-  const poll = async () => {
-    if (!active) return;
-    const profiles = await fetchProfiles();
-    if (active) callback(profiles);
-  };
-
+  const poll = async () => { if (!active) return; const profiles = await fetchProfiles(); if (active) callback(profiles); };
   poll();
-
   const intervalId = setInterval(poll, intervalMs);
-
-  const unsubPush = onProfilesChanged((profiles) => {
-    if (active) callback(profiles);
-  });
-
-  return () => {
-    active = false;
-    clearInterval(intervalId);
-    unsubPush();
-  };
+  const unsubPush = onProfilesChanged((profiles) => { if (active) callback(profiles); });
+  return () => { active = false; clearInterval(intervalId); unsubPush(); };
 }
