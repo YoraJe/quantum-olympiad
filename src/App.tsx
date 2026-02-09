@@ -22,8 +22,6 @@ import {
   signOut,
   saveQuizResult,
   updateStreak,
-  recoverSessionFromURL,
-  getExistingSession,
   type Profile,
 } from '@/lib/supabaseClient';
 
@@ -88,49 +86,6 @@ export function App() {
   const [usedSignatures, setUsedSignatures] = useState<Set<string>>(new Set());
   const [mastery, setMastery] = useState(false);
   const [expandedReview, setExpandedReview] = useState<number | null>(null);
-
-  const [initialLoading, setInitialLoading] = useState(true);
-
-  // On mount: check for auth callback in URL or existing session
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        // First: check if URL has auth tokens (redirect from email verification)
-        const recoveredUser = await recoverSessionFromURL();
-        if (recoveredUser) {
-          setCurrentUser(recoveredUser);
-          setCurrentStreak(recoveredUser.current_streak);
-          setUserLevel(recoveredUser.level);
-          if (recoveredUser.role === 'admin') {
-            setView('admin');
-          } else {
-            setView('onboarding');
-          }
-          setInitialLoading(false);
-          return;
-        }
-
-        // Second: check for existing session (page refresh)
-        const existingUser = await getExistingSession();
-        if (existingUser) {
-          setCurrentUser(existingUser);
-          setCurrentStreak(existingUser.current_streak);
-          setUserLevel(existingUser.level);
-          if (existingUser.role === 'admin') {
-            setView('admin');
-          } else {
-            setView('onboarding');
-          }
-          setInitialLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.error('Auth check error:', err);
-      }
-      setInitialLoading(false);
-    }
-    checkAuth();
-  }, []);
 
   // Derived
   const accentTheme = view === 'admin' ? 'green' : userLevel === 'SMP' ? 'amber' : 'cyan';
@@ -273,22 +228,9 @@ export function App() {
       </div>
 
       <div className="relative z-10">
-        {/* ---- INITIAL LOADING ---- */}
-        {initialLoading && (
-          <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            >
-              <Atom className="w-12 h-12 text-cyan-400" />
-            </motion.div>
-            <p className="text-white/30 text-sm font-mono tracking-wider">Initializing...</p>
-          </div>
-        )}
-
         <AnimatePresence mode="wait">
           {/* ---- LOGIN ---- */}
-          {!initialLoading && view === 'login' && (
+          {view === 'login' && (
             <LoginPage
               key="login"
               onLoginSuccess={handleLoginSuccess}
@@ -296,7 +238,7 @@ export function App() {
           )}
 
           {/* ---- ONBOARDING (Level Select) ---- */}
-          {!initialLoading && view === 'onboarding' && currentUser && (
+          {view === 'onboarding' && currentUser && (
             <OnboardingView
               key="onboarding"
               userName={currentUser.display_name}
@@ -307,7 +249,7 @@ export function App() {
           )}
 
           {/* ---- DASHBOARD ---- */}
-          {!initialLoading && view === 'dashboard' && currentUser && (
+          {view === 'dashboard' && currentUser && (
             <DashboardView
               key="dashboard"
               userName={currentUser.display_name}
@@ -324,7 +266,7 @@ export function App() {
           )}
 
           {/* ---- EXAM ---- */}
-          {!initialLoading && view === 'exam' && questions.length > 0 && (
+          {view === 'exam' && questions.length > 0 && (
             <ExamView
               key="exam"
               question={questions[currentQIndex]}
@@ -342,7 +284,7 @@ export function App() {
           )}
 
           {/* ---- RESULTS ---- */}
-          {!initialLoading && view === 'results' && (
+          {view === 'results' && (
             <ResultsView
               key="results"
               questions={questions}
@@ -358,7 +300,7 @@ export function App() {
           )}
 
           {/* ---- ADMIN DASHBOARD ---- */}
-          {!initialLoading && view === 'admin' && currentUser && (
+          {view === 'admin' && currentUser && (
             <AdminDashboard
               key="admin"
               currentUser={currentUser}
