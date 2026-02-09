@@ -1,4 +1,4 @@
-// ============================================================
+.// ============================================================
 // QUANTUM OLYMPIAD — SUPABASE CLIENT v3.0 (Auth + Register + Realtime)
 // ============================================================
 // Full authentication layer: Login, Register, Email Verification.
