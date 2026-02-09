@@ -1,4 +1,4 @@
-.import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, BookOpen, Trophy, ChevronRight, ArrowLeft, CheckCircle2, XCircle,

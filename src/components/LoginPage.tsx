@@ -1,4 +1,4 @@
-.// ============================================================
+// ============================================================
 // QUANTUM OLYMPIAD — LOGIN PAGE v4.0 (Instant Access — No Email Verification)
 // ============================================================
 // The "Morphing Interface" — a single Glassmorphism card:
