@@ -160,7 +160,13 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         return;
       }
 
-      // Success — switch to verification pending UI
+      // If email verification is disabled, user is auto-confirmed — login directly
+      if (result.autoConfirmed && result.user) {
+        onLoginSuccess(result.user);
+        return;
+      }
+
+      // Otherwise show verification pending UI
       setVerificationEmail(email.trim());
       setAuthView('verification-pending');
     } catch {
