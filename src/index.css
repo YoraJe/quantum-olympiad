@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-inter: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-neon-amber: #f59e0b;
+  --color-cyber-cyan: #06b6d4;
+  --color-matrix-green: #22c55e;
+  --color-success: #10b981;
+  --color-error: #f43f5e;
+  --color-deep-space: #020617;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: #020617;
+  color: white;
+  overflow-x: hidden;
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.glass-panel-strong {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================================
+   SCANLINE EFFECT — Admin/Hacker terminal aesthetic
+   ============================================================ */
+@keyframes scanline-move {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scanline-overlay {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(34, 197, 94, 0.03) 0px,
+    rgba(34, 197, 94, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(34, 197, 94, 0.04) 50%,
+    transparent 100%
+  );
+  animation: scanline-move 4s linear infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.4);
+}
+
+/* ============================================================
+   ADMIN GLOW EFFECTS
+   ============================================================ */
+@keyframes terminal-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  animation: terminal-blink 1s step-end infinite;
+}
