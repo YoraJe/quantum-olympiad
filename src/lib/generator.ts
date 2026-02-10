@@ -20,17 +20,12 @@ export interface GeneratedQuestion {
   explanation: string;
   diagramType: 'triangle' | 'rectangle' | 'block-force' | 'circle' | 'trapezoid' | 'none';
   diagramData: Record<string, number>;
+  imageUrl?: string;
 }
 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-function _randFloat(_min: number, _max: number, _decimals = 1): number {
-  const val = Math.random() * (_max - _min) + _min;
-  return parseFloat(val.toFixed(_decimals));
-}
-void _randFloat;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -94,7 +89,6 @@ const mathSMPTemplates: TemplateFn[] = [
   },
   () => {
     const r = randInt(3, 14);
-    const _area = Math.round(Math.PI * r * r * 100) / 100; void _area;
     return { question: `Sebuah lingkaran memiliki jari-jari ${r} cm. Berapakah luasnya? (π = 3.14)`, answer: parseFloat((3.14 * r * r).toFixed(2)), explanation: `Luas = π × r² = 3.14 × ${r}² = ${(3.14 * r * r).toFixed(2)} cm²`, diagramType: 'circle', diagramData: { radius: r }, signatureBase: `mat-circ-r${r}` };
   },
   () => {
@@ -147,8 +141,8 @@ const ipaSMPTemplates: TemplateFn[] = [
     return { question: `Sebuah mobil bergerak dengan kecepatan ${v} m/s selama ${t} detik. Berapakah jarak tempuhnya?`, answer: s, explanation: `s = v × t = ${v} × ${t} = ${s} m`, diagramType: 'none', diagramData: {}, signatureBase: `ipa-jarak-v${v}-t${t}` };
   },
   () => {
-    const m = randInt(1, 15); const g = 10; const h = randInt(2, 20);
-    const ep = m * g * h;
+    const m = randInt(1, 15); const h = randInt(2, 20);
+    const ep = m * 10 * h;
     return { question: `Benda bermassa ${m} kg berada di ketinggian ${h} m. Berapakah energi potensialnya? (g = 10 m/s²)`, answer: ep, explanation: `Ep = m × g × h = ${m} × 10 × ${h} = ${ep} J`, diagramType: 'block-force', diagramData: { mass: m, force: ep / 10 }, signatureBase: `ipa-ep-m${m}-h${h}` };
   },
   () => {
@@ -162,8 +156,8 @@ const ipaSMPTemplates: TemplateFn[] = [
     return { question: `Sebuah resistor ${r} Ω dialiri arus ${i} A. Berapakah tegangan listriknya?`, answer: v3, explanation: `V = I × R = ${i} × ${r} = ${v3} Volt`, diagramType: 'none', diagramData: {}, signatureBase: `ipa-ohm-r${r}-i${i}` };
   },
   () => {
-    const m = randInt(1, 10); const dT = randInt(5, 50); const c = 4200;
-    const q = m * c * dT;
+    const m = randInt(1, 10); const dT = randInt(5, 50);
+    const q = m * 4200 * dT;
     return { question: `Air bermassa ${m} kg dipanaskan dari 20°C hingga ${20 + dT}°C. Berapa kalor yang diperlukan? (c = 4200 J/kg°C)`, answer: q, explanation: `Q = m × c × ΔT = ${m} × 4200 × ${dT} = ${q} J`, diagramType: 'none', diagramData: {}, signatureBase: `ipa-kalor-m${m}-dT${dT}` };
   },
 ];
@@ -241,8 +235,7 @@ const fisikaSMATemplates: TemplateFn[] = [
   },
   () => {
     const m1 = randInt(1, 10); const m2 = randInt(1, 10); const r = randInt(1, 5);
-    const G = 667;
-    const f2 = Math.round(G * m1 * m2 / (r * r));
+    const f2 = Math.round(667 * m1 * m2 / (r * r));
     return { question: `Dua benda bermassa ${m1} kg dan ${m2} kg berjarak ${r} m. Berapa gaya gravitasi? (G = 6.67 × 10⁻¹¹, jawab dalam ×10⁻¹¹ N)`, answer: f2, explanation: `F = G×m₁×m₂/r² = 6.67×10⁻¹¹ × ${m1} × ${m2} / ${r}² = ${f2} × 10⁻¹¹ N`, diagramType: 'none', diagramData: {}, signatureBase: `fis-grav-${m1}-${m2}-${r}` };
   },
   () => {
